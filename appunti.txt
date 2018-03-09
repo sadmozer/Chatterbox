@@ -1,0 +1,14 @@
+--- hash table utenti registrati ---
+entry (1000+):
+- Nome utente
+- History
+
+accesso:
+REGISTER_OP
+CONNECT_OP
+
+--- hash table utenti connessi ---
+entry (30+, max MAX_CONNECTIONS) :
+- Nome utente
+- Fd
+
