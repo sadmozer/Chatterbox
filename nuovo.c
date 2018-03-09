@@ -56,11 +56,16 @@ int to_list_vfun(icl_entry_t * corr, void ** argv){
 }
 
 /**
-* @function
-* @brief
-* @param [in] <name> <parameter_description>
-* @return <return_description>
-* @details <details>
+* @function post_all
+* @brief Spedisce un messaggio a tutti gli utenti
+*
+* @param ht tabella hash
+* @param mux mutex dei bucket della tabella
+* @param sender mittente del messaggio
+* @param hist_message messaggio da memorizzare nella
+*                     history (tipo, buffer, lunghezza)
+*
+* @details Wrapper di icl_hash_apply
 */
 void post_all(icl_hash_t * ht, pthread_mutex_t * mux, char * sender, msg_data_t * hist_message){
     message_t sendr_message;
@@ -74,6 +79,18 @@ void post_all(icl_hash_t * ht, pthread_mutex_t * mux, char * sender, msg_data_t 
     icl_hash_apply_anyway(ht, mux, post_all_vfun, argv);
     free_data_msg(hist_message);
 }
+
+/**
+* @function post_all_vfun
+* @brief Spedisce all'utente corrente un messaggio
+*
+* @param corr utente corrente
+* @param argv puntatore agli argomenti di input-output
+*
+* @return 0
+* @details dato che restituisce sempre 0, si effettua una scansione
+*          completa della tabella hash
+*/
 int post_all_vfun(icl_entry_t * corr, void ** argv){
     icl_hash_t * ht = (icl_hash_t*) argv[0];
     char * sender = (char*) argv[1];
@@ -83,30 +100,27 @@ int post_all_vfun(icl_entry_t * corr, void ** argv){
     msg_data_t * copy_hist_message;
     user_data_t * curr_user_data = ((user_data_t *) corr->data);
     char * curr_user_name = (char*) corr->key;
+    copy_hist_message = new_msg_data(original_hist_message->type, original_hist_message->buf, original_hist_message->len);
 
-    if (ht->hash_key_compare(curr_user_name, sender) == 0)
+    if (curr_user->fd == -1)
     {
-      copy_hist_message = new_msg_data(original_hist_message->type, original_hist_message->buf, original_hist_message->len);
-      if (curr_user->fd == -1)
-        {
-          printf("%s manda il messaggio |%s| a %s: OFFLINE\n", sender, copy_hist_message->buf, curr_user_name);
-          add_g(curr_user->pvmsg, new_string(sender), copy_hist_message);
-          updateStats(0, 0, 0, 1, 0, 0, 0);
-        }
-        else
-        {
-            if (curr_user->fd > 100 || curr_user->fd < 0)
-                printf("C'è qualcosa che non va\n");
-            printf("%s manda il messaggio |%s| a %s: ONLINE %d\n", sender, copy_hist_message->buf, (char *)corr->key, ((user_data_t *)corr->data)->fd);
-            SYS(sendRequest(curr_user->fd, send_message), -1, "Error icl_hash_postall");
-            if(errno == EPIPE){
-              printf("%s manda il messaggio |%s| a %s: OFFLINE\n", sender, copy_hist_message->buf, curr_user_name);
-              add_g(curr_user->pvmsg, new_string(sender), copy_hist_message);
-              updateStats(0, 0, 0, 1, 0, 0, 0);
-            }
-            else
-                free_data_msg(copy_hist_message);
-        }
+      printf("%s manda il messaggio |%s| a %s: OFFLINE\n", sender, copy_hist_message->buf, curr_user_name);
+      add_g(curr_user->pvmsg, new_string(sender), copy_hist_message);
+      updateStats(0, 0, 0, 1, 0, 0, 0);
+    }
+    else
+    {
+      if (curr_user->fd > 100 || curr_user->fd < 0)
+          printf("C'è qualcosa che non va\n");
+      printf("%s manda il messaggio |%s| a %s: ONLINE %d\n", sender, copy_hist_message->buf, (char *)corr->key, ((user_data_t *)corr->data)->fd);
+      SYS(sendRequest(curr_user->fd, send_message), -1, "Error icl_hash_postall");
+      if(errno == EPIPE){
+        printf("%s manda il messaggio |%s| a %s: OFFLINE\n", sender, copy_hist_message->buf, curr_user_name);
+        add_g(curr_user->pvmsg, new_string(sender), copy_hist_message);
+        updateStats(0, 0, 0, 1, 0, 0, 0);
+      }
+      else
+          free_data_msg(copy_hist_message);
     }
     return 0;
 }
