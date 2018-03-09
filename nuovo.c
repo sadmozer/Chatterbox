@@ -56,8 +56,8 @@ int to_list_vfun(icl_entry_t * corr, void ** argv){
 }
 
 /**
-* @function 
-* @brief <brief>
+* @function
+* @brief
 * @param [in] <name> <parameter_description>
 * @return <return_description>
 * @details <details>
