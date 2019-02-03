@@ -1,3 +1,0 @@
-    
-        ParolaChiave       =       Valore      \n           
-

@@ -3,11 +3,11 @@
  *
  * Dipartimento di Informatica Università di Pisa
  * Docenti: Prencipe, Torquati
- *
+ * 
  */
 /**
  * @file client.c
- * @brief Semplice client di test.
+ * @brief Semplice client di test. 
  *
  *
  */
@@ -27,13 +27,13 @@
 #include <sys/mman.h>
 
 
-#include "connections.h"
-#include "ops.h"
+#include <connections.h>
+#include <ops.h>
 
 // tipo di operazione (usata internamente)
 typedef struct {
     char  *sname;   // nickname del sender
-    char  *rname;   // nickname o groupname del receiver
+    char  *rname;   // nickname o groupname del receiver 
     op_t   op;      // tipo di operazione (se OP_END e' una operazione interna)
     char  *msg;     // messaggio testuale o nome del file
     long   size;    // lunghezza del messaggio
@@ -45,12 +45,12 @@ typedef struct {
 static message_t  *MSGS = NULL;
 static const int   msgbatch = 100;
 static size_t      msgcur=0;
-static size_t      msglen=0;
+static size_t      msglen=0;     
 /* ------------------------------------------------------- */
 
 // usage function
 static void use(const char * filename) {
-    fprintf(stderr,
+    fprintf(stderr, 
 	    "use:\n"
 	    " %s -l unix_socket_path -k nick -c nick -[gad] group -t milli -S msg:to -s file:to -R n -h\n"
 	    "  -l specifica il socket dove il server e' in ascolto\n"
@@ -75,17 +75,17 @@ static void use(const char * filename) {
 
 // legge un messaggio (testuale o file) e lo memorizza in MSGS (array globale)
 static int readMessage(int connfd, message_hdr_t *hdr) {
-    printf("ENTRO QUI\n");
+    
     if (readData(connfd, &MSGS[msgcur].data) <= 0) {
 	perror("reading data");
-	return -1;
+	return -1; 
     }
 
     // NOTA: la gestione di MSGS e' molto brutale: non si libera mai memoria
-
+    
     MSGS[msgcur].hdr = *hdr;
     msgcur++;
-    if (msgcur>=msglen) {
+    if (msgcur>=msglen) {  
 	msglen += msgbatch;
 	MSGS= realloc(MSGS, msglen);
 	if (MSGS == NULL) {
@@ -94,7 +94,7 @@ static int readMessage(int connfd, message_hdr_t *hdr) {
 	    exit(EXIT_FAILURE);
 	}
 	for(size_t i=msgcur;i<msglen;++i) MSGS[i].data.buf=NULL;
-    }
+    }	    
     return 1;
 }
 
@@ -104,14 +104,11 @@ static int downloadFile(int connfd, char *filename, char *sender) {
     message_t msg;
     setHeader(&msg.hdr, GETFILE_OP, sender);
     setData(&msg.data, "", filename, strlen(filename)+1);
-    printf("Richiedo %s\n", filename);
     if (sendRequest(connfd, &msg) == -1)  return -1;
-    perror("errore?");
     for( ; ;) {
 	// aspetto di ricevere la risposta alla richiesta
-  printf("Mi pianto qui?\n");
 	if (readHeader(connfd, &msg.hdr) <= 0) return -1;
-  printf("NO!\n");
+
 	// differenti tipi di risposta che posso ricevere
 	switch(msg.hdr.op) {
 	case OP_OK: {
@@ -119,8 +116,8 @@ static int downloadFile(int connfd, char *filename, char *sender) {
 	    return 0;
 	} break;
 	case TXT_MESSAGE:
-	case FILE_MESSAGE: {
-	    /* Non ho ricevuto la risposta ma messaggi da altri client,
+	case FILE_MESSAGE: {  	    
+	    /* Non ho ricevuto la risposta ma messaggi da altri client, 
 	     * li conservo in MSGS per gestirli in seguito.
 	     */
 	    if (readMessage(connfd, &msg.hdr)<=0) return -1;
@@ -141,7 +138,7 @@ static int execute_requestreply(int connfd, operation_t *o) {
     op_t op     = o->op;
     message_t msg;
     char  *mappedfile = NULL;
-
+    
     //setData(&msg.data, "", NULL, 0);
     setData(&msg.data, rname, NULL, 0);
     setHeader(&msg.hdr, op, sname);
@@ -149,7 +146,7 @@ static int execute_requestreply(int connfd, operation_t *o) {
 	if (o->size == 0) {
 	    fprintf(stderr, "ERRORE: size non valida per l'operazione di POST\n");
 	    return -1;
-	}
+	}	    
 	if (op == POSTFILE_OP) {
 	    int fd = open(o->msg, O_RDONLY);
 	    if (fd<0) {
@@ -168,10 +165,10 @@ static int execute_requestreply(int connfd, operation_t *o) {
 	    }
 	    close(fd);
 	    setData(&msg.data, rname, o->msg, strlen(o->msg)+1); // invio il nome del file
-	} else
-	    setData(&msg.data, rname, o->msg, o->size);
-    }
-
+	} else 
+	    setData(&msg.data, rname, o->msg, o->size);	    
+    } 
+    
     // spedizione effettiva
     if (sendRequest(connfd, &msg) == -1) {
 	perror("request");
@@ -197,13 +194,13 @@ static int execute_requestreply(int connfd, operation_t *o) {
 	    perror("reply header");
 	    return -1;
 	}
-
+	
 	// differenti tipi di risposta che posso ricevere
 	switch(msg.hdr.op) {
 	case OP_OK:  ackok = 1;     break;
 	case TXT_MESSAGE:
-	case FILE_MESSAGE: {
-	    /* Non ho ricevuto la risposta ma messaggi da altri client,
+	case FILE_MESSAGE: {  	    
+	    /* Non ho ricevuto la risposta ma messaggi da altri client, 
 	     * li conservo in MSGS per gestirli in seguito.
 	     */
 	    if (readMessage(connfd, &msg.hdr)<=0) return -1;
@@ -222,7 +219,7 @@ static int execute_requestreply(int connfd, operation_t *o) {
 	}
 	}
     }
-    // Ho ricevuto l'ack dal server, ora sulla base dell'operazione che avevo
+    // Ho ricevuto l'ack dal server, ora sulla base dell'operazione che avevo 
     // richiesto devo ...
     switch(op) {
     case REGISTER_OP:
@@ -230,8 +227,8 @@ static int execute_requestreply(int connfd, operation_t *o) {
     case USRLIST_OP: {  // ... ricevere la lista degli utenti
 	if (readData(connfd, &msg.data) <= 0) {
 	    perror("reply data");
-	    return -1;
-	}
+	    return -1; 
+	}	
 	int nusers = msg.data.hdr.len / (MAX_NAME_LENGTH+1);
 	assert(nusers > 0);
 	printf("Lista utenti online:\n");
@@ -242,10 +239,10 @@ static int execute_requestreply(int connfd, operation_t *o) {
     case GETPREVMSGS_OP: { // ... ricevere la lista dei vecchi messaggi
 	if (readData(connfd, &msg.data) <= 0) {
 	    perror("reply data");
-	    return -1;
-	}
+	    return -1; 
+	}	
 	// numero di messaggi che devo ricevere
-	size_t nmsgs = *(size_t*)(msg.data.buf);
+	size_t nmsgs = *(size_t*)(msg.data.buf); 
 	char *FILENAMES[nmsgs]; // NOTA: si suppone che nmsgs non sia molto grande
 	size_t nfiles=0;
 	for(size_t i=0;i<nmsgs;++i) {
@@ -253,18 +250,17 @@ static int execute_requestreply(int connfd, operation_t *o) {
 	    // leggo l'intero messaggio
 	    if (readMsg(connfd, &pmsg) <= 0) {
 		perror("reply data");
-		return -1;
-	    }
+		return -1; 
+	    }	
 	    if (pmsg.hdr.op == FILE_MESSAGE) {
 		FILENAMES[nfiles] = strdup(pmsg.data.buf);
 		nfiles++;
 		printf("[%s vuole inviare il file '%s']\n", pmsg.hdr.sender, pmsg.data.buf);
-	    } else
+	    } else 
 		printf("[%s:] %s\n", pmsg.hdr.sender, (char*)pmsg.data.buf);
-	}
+	}	    
 
 	// scarico i file che ho ricevuto
-  printf("nfiles: %d\n", (int) nfiles);
 	for(size_t i=0;i<nfiles;++i) {
 	    if (downloadFile(connfd, FILENAMES[i], sname) == -1) {
 		fprintf(stderr, "ERRORE: cercando di scaricare il file %s\n", FILENAMES[i]);
@@ -277,8 +273,8 @@ static int execute_requestreply(int connfd, operation_t *o) {
     case POSTTXTALL_OP:
     case POSTFILE_OP:
     case DISCONNECT_OP:
-    case UNREGISTER_OP:
-    case CREATEGROUP_OP:
+    case UNREGISTER_OP: 
+    case CREATEGROUP_OP: 
     case ADDGROUP_OP:
     case DELGROUP_OP: break;  // ... fare nulla
     default: {
@@ -286,16 +282,16 @@ static int execute_requestreply(int connfd, operation_t *o) {
 	return -1;
     }
     }
-    return 0;
+    return 0;   
 }
 
 // gestisce operazioni di tipo richiesta-risposta
 static int execute_receive(int connfd, operation_t *o) {
     char *sname = o->sname;
     size_t m    = (size_t)-1;
-
+    
     if (o->n>0) m = (ssize_t)o->n;
-
+    
     size_t c=0;
     for(size_t i=0; i<msgcur;++i) {
 	if (MSGS[i].data.buf != NULL) {
@@ -309,7 +305,7 @@ static int execute_receive(int connfd, operation_t *o) {
 		    return -1;
 		}
 		printf("[Il file '%s' e' stato scaricato correttamente]\n",filename);
-	    } else
+	    } else 
 		printf("[%s:] %s\n", MSGS[i].hdr.sender, (char*)MSGS[i].data.buf);
 
 	    if (++c == m) break;
@@ -320,8 +316,8 @@ static int execute_receive(int connfd, operation_t *o) {
 	// leggo header e data
 	if (readMsg(connfd, &msg) == -1) {
 	    perror("reply data");
-	    return -1;
-	}
+	    return -1; 
+	}	
 	switch(msg.hdr.op) {
 	case TXT_MESSAGE: {
 	    printf("[%s:] %s\n", msg.hdr.sender, (char*)msg.data.buf);
@@ -341,7 +337,7 @@ static int execute_receive(int connfd, operation_t *o) {
 	    fprintf(stderr, "ERRORE: ricevuto messaggio non valido\n");
 	    return -1;
 	}
-	}
+	}	    
     }
     return 0;
 }
@@ -455,14 +451,14 @@ int main(int argc, char *argv[]) {
 		use(argv[0]);
 		return -1;
 	    }
-	    *p++ = '\0';
+	    *p++ = '\0';	
 
 	    if (arg[0] == '\0') {
 		fprintf(stderr, "ERRORE: messaggio vuoto\n");
 		return -1;
 	    }
 
-	    ops[k].sname = nick;
+	    ops[k].sname = nick;    
 	    ops[k].rname = strlen(p)?p:NULL;
 	    ops[k].op    = strlen(p)?POSTTXT_OP:POSTTXTALL_OP;
 	    ops[k].msg   = arg;
@@ -488,7 +484,7 @@ int main(int argc, char *argv[]) {
 	    ops[k].sname = nick;
 	    ops[k].rname = p;
 	    ops[k].op    = POSTFILE_OP;
-
+	    
 	    // controllo che il file esista
 	    struct stat st;
 	    if (stat(arg, &st)==-1) {
@@ -503,7 +499,7 @@ int main(int argc, char *argv[]) {
 		return -1;
 	    }
 	    ops[k].msg  = arg;        // nome del file
-	    ops[k].size = st.st_size; // size del file
+	    ops[k].size = st.st_size; // size del file 
 	    ++k;
 	} break;
 	case 'R': {
@@ -534,7 +530,7 @@ int main(int argc, char *argv[]) {
     }
     // qualora -k non venisse prima delle altre opzioni
     if (nickneeded) {
-	for(int i=0;i<k;++i)
+	for(int i=0;i<k;++i) 
 	    if (ops[i].op != REGISTER_OP) ops[i].sname = nick;
     }
     // vincolo su -c
@@ -552,13 +548,13 @@ int main(int argc, char *argv[]) {
 
     // ignoro SIGPIPE per evitare di essere terminato da una scrittura su un socket chiuso
     struct sigaction s;
-    memset(&s,0,sizeof(s));
+    memset(&s,0,sizeof(s));    
     s.sa_handler=SIG_IGN;
-    if ( (sigaction(SIGPIPE,&s,NULL) ) == -1 ) {
+    if ( (sigaction(SIGPIPE,&s,NULL) ) == -1 ) {   
 	perror("sigaction");
 	return -1;
-    }
-    struct timespec req = { msleep/1000, (msleep%1000)*1000000L };
+    } 
+    struct timespec req = { msleep/1000, (msleep%1000)*1000000L };  
 
     MSGS = malloc(msgbatch*sizeof(message_t));
     if (!MSGS) {
@@ -567,16 +563,16 @@ int main(int argc, char *argv[]) {
 	return -1;
     }
     msglen = msgbatch;
-
+  
     int r=0;
     for(int i=0;i<k;++i) {
-	if (ops[i].op != OP_END)
+	if (ops[i].op != OP_END) 
 	    r = execute_requestreply(connfd, &ops[i]);
-	else
+	else 
 	    r = execute_receive(connfd, &ops[i]);
 	if (r == 0)  printf("Operazione %d eseguita con successo!\n", i);
 	else break;  // non appena una operazione fallisce esco
-
+	
 	// tra una operazione e l'altra devo aspettare msleep millisecondi
 	if (msleep>0) nanosleep(&req, (struct timespec *)NULL);
     }
@@ -585,3 +581,4 @@ int main(int argc, char *argv[]) {
     if (MSGS) free(MSGS);
     return r;
 }
+

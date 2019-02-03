@@ -1,17 +1,32 @@
+/*
+ * membox Progetto del corso di LSO 2017
+ *
+ * Dipartimento di Informatica Università di Pisa
+ * Docenti: Prencipe, Torquati
+ *
+ */
+/**
+ * @file options.h
+ * @author Niccolò Cardelli 534015
+ * @copyright 2018 Niccolò Cardelli 534015
+ * @brief Contiene la struttura che contiene le impostazioni del file di configurazione
+ *        e le relative funzioni di utilita'
+ */
 #if !defined (OPTIONS_H_)
 #define OPTIONS_H_
 #include <string.h>
 #include <stdio.h>
 #include <config.h>
 
-struct options {
+struct options
+{
     char UnixPath[MAX_PATH_LENGTH];
     unsigned int MaxConnections;
     unsigned int ThreadsInPool;
     unsigned int MaxMsgSize;
     unsigned int MaxFileSize;
     unsigned int MaxHistMsgs;
-    char DirName[MAX_PATH_LENGTH]; 
+    char DirName[MAX_PATH_LENGTH];
     char StatFileName[MAX_PATH_LENGTH];
 };
 
